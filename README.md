@@ -1,84 +1,61 @@
-# Rare-event experiments
+# GeoIS experiments
 
-This folder contains one retained parameter set for each of the four examples.
-Each example has an N sweep and a three-column combined sweep. There is no
-four-example overview or alternate-parameter sweep version.
+Four rare-event examples compare GeoIS, LSIS, and CE; diffusion also includes LAIS-dm.
+Requires Python 3.10+.
 
-## Fixed settings
-
-| Setting | Quadratic, ellipsoid, portfolio | Diffusion |
-| --- | --- | --- |
-| Fixed ℓ outside the ℓ sweep | 0.5 | 0.5 |
-| Fixed λ₀ outside the λ₀ sweep | 100 | 50 |
-| Combined-sweep N | 5000 | 5000 |
-| Independent repetitions | 100 | 100 |
-| Random seed | 20260821 | 20260913 |
-| N sweep dimensions | d=10 | d=10 and d=149 |
-| N grid | 500:250:5000 | 500:500:5000 |
-| λ₀ grid, with d=20 | 50:50:300 | 50, 100, 200, 300 |
-| ℓ grid, with d=20 | 0.5:0.05:1 | 0.5:0.1:1 |
-| d grid | 5:5:150 | 5, 10, 20, 30, 40, 50, 60, 80, 100, 120, 150 |
-
-The diffusion N sweep retains its original two dimensions; the combined
-dimension sweep ends at d=150. All d values denote tangent dimensions.
-Portfolio fixes ℓ, with z=exp(-ℓ/sqrt(d+1)); z therefore changes during the
-dimension sweep.
-
-## Results
-
-Each `<case>/results/` contains:
-
-- `n_comparison.csv` and `<case>_n_sweep.png/.pdf`.
-- `combined_N5000.csv` and `<case>_combined.png/.pdf`.
-- `manifest.json`, containing settings, data hashes, and provenance.
-
-The combined figures use an independent y-axis for each CV² panel. All
-methods, including LSIS and CE, are shown in the probability panels. In the
-d-sweep probability panel, the lower y limit is −20 and the upper limit
-adapts to the highest displayed estimate with a small margin. Curves extend
-to and are clipped by the plot boundary; the underlying estimates are not
-clamped or removed. Figure footnotes are omitted.
-The CSV files retain every method. Ellipsoid has the same three columns as
-the other examples. Horizontal axis padding is retained.
-
-CV² definitions are unchanged: the explicit examples use pooled weight CV²
-divided by N; diffusion plots independent-repetition CV² for every method,
-including LAIS. At ℓ=1, the first three examples still have probability
-estimates below 10⁻²⁰; the requested sweep endpoints are retained.
-
-## Run or redraw
+## Run
 
 From this folder:
 
 ```sh
 python3 -m pip install -r requirements.txt
-python3 portfolio/plot.py          # Redraw both figures from saved CSVs.
-python3 portfolio/run.py           # Recompute both sweeps and overwrite results.
+python3 portfolio/run.py          # Simulate and overwrite this case's results.
+python3 portfolio/plot.py         # Redraw figures from existing CSV files.
 ```
 
 Replace `portfolio` with `quadratic`, `upper_exterior_ellipsoid`, or `diffusion`.
-The default run uses the settings above and four worker processes. There are
-no alternate fixed-λ₀ or fixed-z profiles.
+By default, `run.py` runs all sweeps with 4 processes and 100 independent repetitions,
+saving to `<case>/results/`; `plot.py` redraws both sweep figures in that folder.
+For a small test, use `python3 portfolio/run.py --quick`.
 
-| Option | Applies to | Meaning |
+The fixed settings outside the corresponding sweeps are ℓ=0.5 and λ₀=100
+(λ₀=50 for diffusion). Combined sweeps use N=5000, with λ₀ from 50 to 300,
+ℓ from 0.5 to 1, and d from 5 to 150. Portfolio fixes ℓ in the d-sweep,
+with z=exp(-ℓ/sqrt(d+1)). Exact grids are in `experiments.py`.
+
+## Options
+
+Omit options to use the defaults. Replace `PATH` with a folder path.
+
+| Option | Script | Meaning |
 | --- | --- | --- |
-| `--sweep n` | Run and plot | N sweep only |
-| `--sweep combined` | Run and plot | λ₀, ℓ, and d sweeps only |
-| `--workers 4` | Run | Number of worker processes |
-| `--replicates 100` | Run | Independent repetitions |
-| `--output-dir PATH` | Run | Alternative results folder |
-| `--no-plot` | Run | Save only data and metadata |
-| `--quick` | Run | Small verification run with 3 repetitions, in a temporary folder |
-| `--data PATH` | Plot | Folder containing the CSVs to redraw |
+| `--quick` | `run.py` | Use smaller grids and sample sizes, with 3 repetitions; save to a temporary folder. |
+| `--sweep n` | Both | Only process the sample-size N sweep. |
+| `--sweep combined` | Both | Only process the precision, length, and dimension sweeps. |
+| `--workers 4` | `run.py` | Use 4 parallel processes. |
+| `--replicates 100` | `run.py` | Run 100 independent repetitions (R, not N); overrides the quick default. |
+| `--output-dir PATH` | `run.py` | Save CSV results and figures to this folder. |
+| `--no-plot` | `run.py` | Save results without drawing figures. |
+| `--data PATH` | `plot.py` | Read CSV files from this folder and save redrawn figures there. |
 
-`main.py` contains the explicit models and sampling algorithms;
-`diffusion/diffusion.py` contains the diffusion model;
-`experiments.py` defines the retained grids and repetition runner;
-`plotting.py` draws the N and combined figures.
+## Files
 
-The retained CSVs and figures were copied unchanged from the selected
-results. Historical code hashes in each manifest document their origin;
-deleted parameter versions are not required to run or redraw these results.
+| File | Purpose |
+| --- | --- |
+| `main.py` | Explicit models, samplers, and CV² statistics |
+| `experiments.py` | Parameter grids and independent repetitions |
+| `plotting.py` | Shared figure styles and layouts |
+| `<case>/run.py`, `<case>/plot.py` | Short entry points for each example |
+| `diffusion/diffusion.py` | PDE solver, derivatives, and geometry |
+| `<case>/results/` | CSV results, PNG/PDF figures, and a settings manifest |
 
-The ellipsoid coordinate illustration and `schematic.py` are separate from
-the sweep experiments and remain available.
+Each case saves `n_comparison.csv`, `combined_N5000.csv`, and the corresponding
+N-sweep and combined figures. Ellipsoid also includes a coordinate illustration;
+redraw it with `python3 upper_exterior_ellipsoid/schematic.py`.
+
+## Reproducibility
+
+Settings and random seeds are in `experiments.py`; algorithm details are in the paper.
+Each `manifest.json` records result settings and provenance. Some saved results used
+earlier random streams, so fresh simulations may differ; redrawing the saved CSVs
+reproduces the displayed curves.

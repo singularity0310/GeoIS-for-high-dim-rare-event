@@ -1,0 +1,157 @@
+{
+  "case": "quadratic",
+  "fixed_ell": 0.5,
+  "fixed_lambda0": 100,
+  "replicates": 100,
+  "seed": 20260821,
+  "plot_options": {
+    "hide_ce_d_logp": false,
+    "independent_cv_axes": true,
+    "d_logp_ylim": [
+      -20,
+      "auto"
+    ],
+    "show_footnotes": false,
+    "d_logp_clipping": "axis boundary"
+  },
+  "cv2_column": "cv2",
+  "tables": {
+    "n_comparison.csv": {
+      "sha256": "12b62efdffb46c1fa9aeca2e84d74922013b00b891b8547dfd48593dfdb528f5",
+      "grids": {
+        "n": [
+          500.0,
+          750.0,
+          1000.0,
+          1250.0,
+          1500.0,
+          1750.0,
+          2000.0,
+          2250.0,
+          2500.0,
+          2750.0,
+          3000.0,
+          3250.0,
+          3500.0,
+          3750.0,
+          4000.0,
+          4250.0,
+          4500.0,
+          4750.0,
+          5000.0
+        ]
+      },
+      "dimensions": [
+        10
+      ],
+      "source_profile": "lambda100_ell0p5",
+      "note": "Preserved byte-for-byte from the selected result; historical source profiles were removed during cleanup."
+    },
+    "combined_N5000.csv": {
+      "sha256": "c778a665b5bfe45d50dacab8bfbea35c3dd67904942f48597fb3fb018b20c843",
+      "grids": {
+        "d": [
+          5.0,
+          10.0,
+          15.0,
+          20.0,
+          25.0,
+          30.0,
+          35.0,
+          40.0,
+          45.0,
+          50.0,
+          55.0,
+          60.0,
+          65.0,
+          70.0,
+          75.0,
+          80.0,
+          85.0,
+          90.0,
+          95.0,
+          100.0,
+          105.0,
+          110.0,
+          115.0,
+          120.0,
+          125.0,
+          130.0,
+          135.0,
+          140.0,
+          145.0,
+          150.0
+        ],
+        "ell": [
+          0.5,
+          0.55,
+          0.6,
+          0.65,
+          0.7,
+          0.75,
+          0.8,
+          0.85,
+          0.9,
+          0.95,
+          1.0
+        ],
+        "lambda0": [
+          50.0,
+          100.0,
+          150.0,
+          200.0,
+          250.0,
+          300.0
+        ]
+      },
+      "dimensions": [
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+        100,
+        105,
+        110,
+        115,
+        120,
+        125,
+        130,
+        135,
+        140,
+        145,
+        150
+      ],
+      "source_profile": "paper_combined",
+      "note": "Preserved byte-for-byte from the selected result; historical source profiles were removed during cleanup."
+    }
+  },
+  "historical_source_hashes": {
+    "n": {
+      "main.py": "08e3d78644c0a15a7318595a0d68532f7a2da162fddfdf558fa93611b9bb9cb9",
+      "experiments.py": "163742d8703d1b49004ae3347bf3164f2add6cc84ea957f664ad5b431bc29d7f",
+      "diffusion/diffusion.py": "cbe09733176e30d7d16431f4068a0aaa66721307846010e71b9ce088e0889839",
+      "diffusion/__init__.py": "6308ba3c36157c0360b0e59b4a36a4fcc09994730f3bdbc8a2807a553b16f7c3"
+    },
+    "combined": {
+      "main.py": "08e3d78644c0a15a7318595a0d68532f7a2da162fddfdf558fa93611b9bb9cb9",
+      "experiments.py": "163742d8703d1b49004ae3347bf3164f2add6cc84ea957f664ad5b431bc29d7f",
+      "diffusion/diffusion.py": "cbe09733176e30d7d16431f4068a0aaa66721307846010e71b9ce088e0889839",
+      "diffusion/__init__.py": "6308ba3c36157c0360b0e59b4a36a4fcc09994730f3bdbc8a2807a553b16f7c3"
+    }
+  }
+}
