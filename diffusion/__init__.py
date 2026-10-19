@@ -1,1 +1,0 @@
-"""Full-dimensional diffusion model."""
