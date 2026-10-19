@@ -76,7 +76,7 @@ def title(rows, case, sweep=None):
     if sweep != "lambda0":
         fields.append(("lambda0", r"\lambda_0"))
     if sweep != "ell":
-        fields.append(("threshold", "z") if case == "portfolio" else ("ell", r"\ell"))
+        fields.append(("ell", r"\ell"))
     if sweep is not None:
         fields.append(("N", "N"))
     params = r",\ ".join(f"{label}={fixed(rows, key):g}" for key, label in fields)
@@ -281,11 +281,9 @@ def n_sweep(rows, stem, cv2_key="cv2"):
     return output(fig, stem)
 
 
-def combined(rows, stem, cv2_key="cv2", extra_d_rows=None):
+def combined(rows, stem, cv2_key="cv2"):
     case = rows[0]["case"]
     columns = [(sweep, [r for r in rows if r["sweep"] == sweep]) for sweep in SWEEPS]
-    if extra_d_rows is not None:
-        columns.append(("d", [r for r in extra_d_rows if r["sweep"] == "d"]))
     ncols = len(columns)
     fig, axes = plt.subplots(2, ncols, figsize=(14.5 + 4.5 * (ncols - 3), 9.2), sharex="col")
     handles = {}
@@ -297,16 +295,16 @@ def combined(rows, stem, cv2_key="cv2", extra_d_rows=None):
         ax.set_title(title(selected, case, sweep), fontsize=15, pad=17)
         decorate(ax, True)
         decorate(axes[1, col])
+        if sweep == "d":
+            # Retain every curve and clip its display at the axis boundary.
+            # Never clamp the data: estimates below -20 must not appear as a plateau.
+            logp = np.array([float(row["log_mean_estimate"]) for row in selected]) / np.log(10.0)
+            finite = logp[np.isfinite(logp)]
+            upper = max(-19.0, float(np.ceil(finite.max() + 0.1))) if finite.size else 0.0
+            axes[1, col].set_ylim(-20, upper)
         axes[1, col].set_xlabel(AXIS[sweep], fontsize=17, labelpad=8)
-    if case in ("portfolio", "diffusion"):
-        for ax in axes[0]:
-            independent_cv_axis(ax, minimum_top=0.1)
-    else:
-        limits = [ax.get_ylim() for ax in axes[0]]
-        for ax in axes[0]:
-            ax.set_ylim(min(x[0] for x in limits), max(x[1] for x in limits))
-        for ax in axes[0, 1:]:
-            ax.tick_params(labelleft=False)
+    for ax in axes[0]:
+        independent_cv_axis(ax, minimum_top=0.0)
     axes[0, 0].set_ylabel(r"$\mathrm{CV}^2$", fontsize=19)
     axes[1, 0].set_ylabel(r"$\log_{10}\widehat p$", fontsize=19)
     for ax, letter in zip(axes.flat, "abcdefgh"):
@@ -345,8 +343,7 @@ def plot_case(case, data_dir, sweep="all"):
         paths += n_sweep(rows, data / f"{case}_n_sweep", cv2_column(rows))
     if sweep in ("all", "combined"):
         rows = read(data / "combined_N5000.csv")
-        extra = read(data / "d_lambda500.csv") if case == "upper_exterior_ellipsoid" else None
-        paths += combined(rows, data / f"{case}_combined", cv2_column(rows), extra_d_rows=extra)
+        paths += combined(rows, data / f"{case}_combined", cv2_column(rows))
     return paths
 
 

@@ -8,7 +8,8 @@ for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"
 import argparse
 from concurrent.futures import ProcessPoolExecutor
 import csv
-import math
+import hashlib
+import json
 from pathlib import Path
 import tempfile
 
@@ -38,42 +39,38 @@ LAIS_J = 5
 
 def specifications(case, quick=False):
     """Build the N sweep and the columns of the combined figure."""
+    fixed_lambda0 = FIXED_LAMBDA0[case]
     n_dimensions = (10,)
     combined_n = 5000
     grids = {
         "n": list(range(500, 5001, 250)),
-        "lambda0": list(range(50, 501, 50)),
-        "ell": np.linspace(0.5, 1.5, 21).round(2).tolist(),
+        "lambda0": list(range(50, 301, 50)),
+        "ell": np.linspace(0.5, 1.0, 11).round(2).tolist(),
         "d": list(range(5, 151, 5)),
     }
     if case == "diffusion":
         n_dimensions = (10, 149)
         grids["n"] = list(range(500, 5001, 500))
-        grids["lambda0"] = [50, 100, 200, 350, 500]
-        grids["ell"] = np.linspace(0.5, 1.5, 11).round(2).tolist()
-        grids["d"] = [5, 10, 20, 30, 40, 50, 60, 80, 100, 120, 149, 175, 200, 250, 300]
+        grids["lambda0"] = [50, 100, 200, 300]
+        grids["ell"] = np.linspace(0.5, 1.0, 6).round(2).tolist()
+        grids["d"] = [5, 10, 20, 30, 40, 50, 60, 80, 100, 120, 150]
     if quick:
         combined_n = 200
-        grids = {"n": [100, 200], "lambda0": [50, 100], "ell": [0.8, 1.0], "d": [5, 20]}
+        grids = {"n": [100, 200], "lambda0": [50, 100], "ell": [0.5, 1.0], "d": [5, 20]}
         if case == "diffusion":
             grids["d"] = [5, 149]
-    if case == "upper_exterior_ellipsoid":
-        grids["d500"] = grids["d"]
 
     points = []
     for sweep, values in grids.items():
         dimensions = n_dimensions if sweep == "n" else (20,)
         for dimension in dimensions:
             for value in values:
-                d = int(value) if sweep in ("d", "d500") else dimension
-                precision = FIXED_LAMBDA0[case]
-                ell = 1.0
+                d = int(value) if sweep == "d" else dimension
+                precision = fixed_lambda0
+                ell = 0.5
                 n = combined_n
                 table = "combined_N5000.csv"
 
-                # Portfolio holds z=0.8 fixed except during the length sweep.
-                if case == "portfolio":
-                    ell = math.sqrt(d + 1) * abs(math.log(0.8))
                 if sweep == "n":
                     n = int(value)
                     table = "n_comparison.csv"
@@ -81,14 +78,11 @@ def specifications(case, quick=False):
                     precision = float(value)
                 elif sweep == "ell":
                     ell = float(value)
-                elif sweep == "d500":
-                    precision = 500.0
-                    table = "d_lambda500.csv"
 
                 points.append(
                     {
                         "case": case,
-                        "sweep": "d" if sweep == "d500" else sweep,
+                        "sweep": sweep,
                         "x_value": value,
                         "d": d,
                         "lambda0": precision,
@@ -166,6 +160,7 @@ def simulate(job):
         row = metadata.copy()
         row.update(
             case=case,
+            fixed_ell=0.5,
             sweep=spec["sweep"],
             x_value=spec["x_value"],
             method=method,
@@ -245,8 +240,39 @@ def run_case(case, case_dir):
             )
     for name, rows in tables.items():
         write_csv(output / name, rows)
+    write_manifest(case, output, tables)
     if not args.no_plot:
         from plotting import plot_case
 
         plot_case(case, output, args.sweep)
     print(f"Saved results in {output}")
+
+
+def write_manifest(case, output, updated_tables):
+    """Record new tables without discarding provenance for an unchanged sweep."""
+    path = output / "manifest.json"
+    metadata = json.loads(path.read_text()) if path.exists() else {}
+    metadata.update(
+        case=case, fixed_ell=0.5, fixed_lambda0=FIXED_LAMBDA0[case],
+        plot_options=dict(
+            hide_ce_d_logp=False, independent_cv_axes=True, show_footnotes=False,
+            d_logp_ylim=[-20, "auto"], d_logp_clipping="axis boundary",
+        ),
+        cv2_column="replicate_cv2" if case == "diffusion" else "cv2",
+    )
+    metadata.pop("replicates", None)
+    metadata.pop("seed", None)
+    tables = metadata.setdefault("tables", {})
+    root = Path(__file__).resolve().parent
+    sources = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
+               for name in ("main.py", "experiments.py", "diffusion/diffusion.py", "diffusion/__init__.py")}
+    for name, rows in updated_tables.items():
+        tables[name] = dict(
+            sha256=hashlib.sha256((output / name).read_bytes()).hexdigest(),
+            grids={sweep: sorted({float(row["x_value"]) for row in rows if row["sweep"] == sweep})
+                   for sweep in sorted({row["sweep"] for row in rows})},
+            dimensions=sorted({int(row["d"]) for row in rows}),
+            replicates=rows[0]["replicates"], seed=rows[0]["seed"],
+            sources=sources, note="Computed with the current code.",
+        )
+    path.write_text(json.dumps(metadata, indent=2) + "\n")
